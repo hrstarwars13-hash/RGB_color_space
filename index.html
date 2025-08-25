@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB Color Space Visualizer</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f4f4f4; }
+        .controls { margin-bottom: 20px; }
+        .controls > * { margin-right: 10px; }
+        #image-preview { max-width: 300px; max-height: 300px; display: block; margin-bottom: 20px; border: 1px solid #ccc; background: #fff; }
+        #graph { width: 700px; height: 700px; margin-top: 20px; background: #fff; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>RGB Color Space Visualizer</h1>
+    <div class="controls">
+        <label for="image-select">Select image from directory:</label>
+        <select id="image-select">
+            <option value="">--Choose an image--</option>
+            <option value="rgb_images/checkerboard_black_white.png">checkerboard_black_white.png</option>
+            <option value="rgb_images/checkerboard_blue_yellow.png">checkerboard_blue_yellow.png</option>
+            <option value="rgb_images/checkerboard_red_green.png">checkerboard_red_green.png</option>
+            <option value="rgb_images/gradient_black_to_white.png">gradient_black_to_white.png</option>
+            <option value="rgb_images/gradient_green_to_blue.png">gradient_green_to_blue.png</option>
+            <option value="rgb_images/gradient_red_to_blue.png">gradient_red_to_blue.png</option>
+            <option value="rgb_images/gradient_red_to_green.png">gradient_red_to_green.png</option>
+            <option value="rgb_images/shades_blue.png">shades_blue.png</option>
+            <option value="rgb_images/shades_gray.png">shades_gray.png</option>
+            <option value="rgb_images/shades_green.png">shades_green.png</option>
+            <option value="rgb_images/shades_red.png">shades_red.png</option>
+            <option value="rgb_images/solid_black.png">solid_black.png</option>
+            <option value="rgb_images/solid_blue.png">solid_blue.png</option>
+            <option value="rgb_images/solid_cyan.png">solid_cyan.png</option>
+            <option value="rgb_images/solid_green.png">solid_green.png</option>
+            <option value="rgb_images/solid_magenta.png">solid_magenta.png</option>
+            <option value="rgb_images/solid_red.png">solid_red.png</option>
+            <option value="rgb_images/solid_white.png">solid_white.png</option>
+            <option value="rgb_images/solid_yellow.png">solid_yellow.png</option>
+        </select>
+        <input type="file" id="file-input" accept="image/*">
+        <button id="reset-btn">Reset</button>
+    </div>
+    <img id="image-preview" src="" alt="Image preview" style="display:none;"/>
+    <canvas id="hidden-canvas" style="display:none;"></canvas>
+    <div id="graph"></div>
+    <script>
+        const imageSelect = document.getElementById('image-select');
+        const fileInput = document.getElementById('file-input');
+        const resetBtn = document.getElementById('reset-btn');
+        const imagePreview = document.getElementById('image-preview');
+        const hiddenCanvas = document.getElementById('hidden-canvas');
+        const graphDiv = document.getElementById('graph');
+
+        function resetAll() {
+            imagePreview.style.display = 'none';
+            imagePreview.src = '';
+            Plotly.purge(graphDiv);
+            imageSelect.value = '';
+            fileInput.value = '';
+        }
+
+        function plotRGB(image) {
+            const ctx = hiddenCanvas.getContext('2d');
+            hiddenCanvas.width = image.width;
+            hiddenCanvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+            const imgData = ctx.getImageData(0, 0, image.width, image.height).data;
+            const r = [], g = [], b = [], colors = [];
+            for (let i = 0; i < imgData.length; i += 4) {
+                // Normalize RGB values to [0, 1]
+                const rn = imgData[i] / 255;
+                const gn = imgData[i+1] / 255;
+                const bn = imgData[i+2] / 255;
+                r.push(rn);
+                g.push(gn);
+                b.push(bn);
+                colors.push(`rgb(${imgData[i]},${imgData[i+1]},${imgData[i+2]})`);
+            }
+            Plotly.newPlot(graphDiv, [{
+                x: r, y: g, z: b,
+                mode: 'markers',
+                type: 'scatter3d',
+                marker: {
+                    size: 3,
+                    color: colors,
+                    opacity: 0.7
+                }
+            }], {
+                scene: {
+                    xaxis: {title: 'Red', range: [0,1], zeroline: true, zerolinecolor: '#000'},
+                    yaxis: {title: 'Green', range: [0,1], zeroline: true, zerolinecolor: '#000'},
+                    zaxis: {title: 'Blue', range: [0,1], zeroline: true, zerolinecolor: '#000'}
+                },
+                margin: {l:0, r:0, b:0, t:0}
+            });
+        }
+
+        function handleImageLoad(src) {
+            const img = new window.Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                imagePreview.src = src;
+                imagePreview.style.display = 'block';
+                plotRGB(img);
+            };
+            img.src = src;
+        }
+
+        imageSelect.addEventListener('change', function() {
+            if (this.value) {
+                handleImageLoad(this.value);
+            }
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    handleImageLoad(ev.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        resetBtn.addEventListener('click', resetAll);
+    </script>
+</body>
+</html>
